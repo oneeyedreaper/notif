@@ -32,8 +32,8 @@ export interface SmsJobData {
     variables?: Record<string, string>;
 }
 
-// Add email job to queue
-export async function addEmailJob(data: EmailJobData) {
+// Add email job to queue (with optional delay for quiet hours)
+export async function addEmailJob(data: EmailJobData, delayMs: number = 0) {
     const job = await emailQueue.add('send-email', data, {
         attempts: 3,
         backoff: {
@@ -42,13 +42,14 @@ export async function addEmailJob(data: EmailJobData) {
         },
         removeOnComplete: 100,
         removeOnFail: 50,
+        ...(delayMs > 0 && { delay: delayMs }),
     });
 
     return job;
 }
 
-// Add SMS job to queue
-export async function addSmsJob(data: SmsJobData) {
+// Add SMS job to queue (with optional delay for quiet hours)
+export async function addSmsJob(data: SmsJobData, delayMs: number = 0) {
     const job = await smsQueue.add('send-sms', data, {
         attempts: 3,
         backoff: {
@@ -57,6 +58,7 @@ export async function addSmsJob(data: SmsJobData) {
         },
         removeOnComplete: 100,
         removeOnFail: 50,
+        ...(delayMs > 0 && { delay: delayMs }),
     });
 
     return job;
@@ -70,15 +72,19 @@ async function sendEmail(data: EmailJobData): Promise<boolean> {
     let finalBody = body;
 
     // If template is provided, render it
-    if (templateId && variables) {
+    if (templateId) {
         try {
+            console.log(`📧 [TEMPLATE] Fetching template: ${templateId}`);
             const template = await templateService.getById(templateId);
+            const vars = variables || {};
             if (template.subject) {
-                finalSubject = templateService.renderTemplate(template.subject, variables);
+                finalSubject = templateService.renderTemplate(template.subject, vars);
             }
-            finalBody = templateService.renderTemplate(template.body, variables);
+            finalBody = templateService.renderTemplate(template.body, vars);
+            console.log(`📧 [TEMPLATE] Rendered with ${Object.keys(vars).length} variables`);
         } catch (error) {
-            console.error('Failed to render template:', error);
+            console.error('📧 [TEMPLATE ERROR] Failed to render template:', error);
+            // Fall back to default subject/body
         }
     }
 
@@ -129,12 +135,16 @@ async function sendSms(data: SmsJobData): Promise<boolean> {
     let finalMessage = message;
 
     // If template is provided, render it
-    if (templateId && variables) {
+    if (templateId) {
         try {
+            console.log(`📱 [TEMPLATE] Fetching template: ${templateId}`);
             const template = await templateService.getById(templateId);
-            finalMessage = templateService.renderTemplate(template.body, variables);
+            const vars = variables || {};
+            finalMessage = templateService.renderTemplate(template.body, vars);
+            console.log(`📱 [TEMPLATE] Rendered with ${Object.keys(vars).length} variables`);
         } catch (error) {
-            console.error('Failed to render template:', error);
+            console.error('📱 [TEMPLATE ERROR] Failed to render template:', error);
+            // Fall back to default message
         }
     }
 

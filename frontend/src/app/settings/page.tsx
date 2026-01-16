@@ -464,36 +464,6 @@ export default function SettingsPage() {
 						</CardContent>
 					</Card>
 
-					{/* Email Frequency */}
-					{preferences.emailEnabled && verificationStatus.emailVerified && (
-						<Card className="glass-card">
-							<CardHeader>
-								<CardTitle>Email Frequency</CardTitle>
-								<CardDescription>
-									How often should we send email digests?
-								</CardDescription>
-							</CardHeader>
-							<CardContent>
-								<div className="flex gap-2">
-									{(["instant", "daily", "weekly"] as const).map((freq) => (
-										<Button
-											key={freq}
-											variant={
-												preferences.emailFrequency === freq
-													? "default"
-													: "outline"
-											}
-											onClick={() => updatePreference("emailFrequency", freq)}
-											className="capitalize"
-										>
-											{freq}
-										</Button>
-									))}
-								</div>
-							</CardContent>
-						</Card>
-					)}
-
 					{/* Quiet Hours */}
 					<Card className="glass-card">
 						<CardHeader>

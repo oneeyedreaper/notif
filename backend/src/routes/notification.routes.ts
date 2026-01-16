@@ -98,16 +98,32 @@ router.patch('/read-all', notificationController.markAllAsRead.bind(notification
  *             properties:
  *               title:
  *                 type: string
+ *                 description: Notification title
  *               message:
  *                 type: string
+ *                 description: Notification message body
  *               type:
  *                 type: string
  *                 enum: [INFO, SUCCESS, WARNING, ERROR, SYSTEM]
+ *                 default: INFO
  *               priority:
  *                 type: string
  *                 enum: [LOW, MEDIUM, HIGH]
+ *                 default: MEDIUM
  *               actionUrl:
  *                 type: string
+ *                 description: URL to link to from the notification
+ *               emailTemplateId:
+ *                 type: string
+ *                 description: Optional template ID for email (uses template instead of title/message)
+ *               smsTemplateId:
+ *                 type: string
+ *                 description: Optional template ID for SMS (uses template instead of title/message)
+ *               templateVariables:
+ *                 type: object
+ *                 additionalProperties:
+ *                   type: string
+ *                 description: Key-value pairs to substitute in the template
  *     responses:
  *       201:
  *         description: Notification created

@@ -33,9 +33,9 @@ export const createNotificationSchema = z.object({
     actionUrl: z.string().url().optional(),
     metadata: z.record(z.any()).optional(),
     scheduledAt: z.string().datetime().optional(),
-    sendEmail: z.boolean().default(false),
-    sendSms: z.boolean().default(false),
-    templateId: z.string().optional(),
+    // Template support for email/SMS
+    emailTemplateId: z.string().optional(),
+    smsTemplateId: z.string().optional(),
     templateVariables: z.record(z.string()).optional(),
 });
 
