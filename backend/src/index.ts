@@ -92,8 +92,11 @@ httpServer.listen(config.port, () => {
 🚀 Notification System Backend Started!
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    🌐 Server:    http://localhost:${config.port}
-   📚 API Docs:  http://localhost:${config.port}/api/docs
+   📚 API Docs:  http://localhost:${config.port}/api-docs
    🔌 Socket.IO: ws://localhost:${config.port}
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   📧 Email Mode: ${config.sendgrid.mockMode ? 'MOCK (not sending real emails)' : 'LIVE (SendGrid)'}
+   📱 SMS Mode:   ${config.twilio.mockMode ? 'MOCK (not sending real SMS)' : 'LIVE (Twilio)'}
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   `);
 });

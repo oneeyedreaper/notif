@@ -2,10 +2,21 @@ import prisma from '../models/prisma.js';
 import { CreateNotificationInput, ListNotificationsInput } from '../utils/validators.js';
 import { createError } from '../middleware/error.js';
 import { Prisma } from '@prisma/client';
+import { addEmailJob, addSmsJob } from '../queues/index.js';
 
 export class NotificationService {
     async create(data: CreateNotificationInput, userId: string) {
         const targetUserId = data.userId || userId;
+
+        // Get user with preferences
+        const user = await prisma.user.findUnique({
+            where: { id: targetUserId },
+            include: { preferences: true },
+        });
+
+        if (!user) {
+            throw createError('User not found', 404);
+        }
 
         const notification = await prisma.notification.create({
             data: {
@@ -20,10 +31,40 @@ export class NotificationService {
             },
             include: {
                 user: {
-                    select: { id: true, email: true, name: true },
+                    select: { id: true, email: true, name: true, phone: true },
                 },
             },
         });
+
+        // Queue email if user has opted in and email is verified
+        if (user.preferences?.emailEnabled && user.emailVerified) {
+            console.log(`📧 [QUEUE] Queuing email for user ${user.email} - Notification: "${data.title}"`);
+            await addEmailJob({
+                notificationId: notification.id,
+                to: user.email,
+                subject: `[${data.type}] ${data.title}`,
+                body: data.message,
+            });
+            console.log(`📧 [QUEUE] Email queued successfully for ${user.email}`);
+        } else {
+            console.log(`📧 [SKIP] Email not sent - emailEnabled: ${user.preferences?.emailEnabled}, emailVerified: ${user.emailVerified}`);
+        }
+
+        // Queue SMS if user has opted in and phone is verified
+        if (user.preferences?.smsEnabled && user.phone && user.phoneVerified) {
+            console.log(`📱 [QUEUE] Queuing SMS for user ${user.phone} - Notification: "${data.title}"`);
+            const smsMessage = data.actionUrl
+                ? `${data.title}: ${data.message}\n\nView: ${data.actionUrl}`
+                : `${data.title}: ${data.message}`;
+            await addSmsJob({
+                notificationId: notification.id,
+                to: user.phone,
+                message: smsMessage,
+            });
+            console.log(`📱 [QUEUE] SMS queued successfully for ${user.phone}`);
+        } else {
+            console.log(`📱 [SKIP] SMS not sent - smsEnabled: ${user.preferences?.smsEnabled}, phone: ${user.phone ? 'exists' : 'none'}, phoneVerified: ${user.phoneVerified}`);
+        }
 
         return notification;
     }

@@ -91,13 +91,35 @@ async function sendEmail(data: EmailJobData): Promise<boolean> {
         return true;
     }
 
-    // Real SendGrid implementation would go here
-    // const sgMail = require('@sendgrid/mail');
-    // sgMail.setApiKey(config.sendgrid.apiKey);
-    // await sgMail.send({ to, from: config.sendgrid.fromEmail, subject: finalSubject, text: finalBody });
+    // Real SendGrid implementation
+    try {
+        console.log(`📧 [SENDGRID] Attempting to send email...`);
+        console.log(`   API Key: ${config.sendgrid.apiKey ? config.sendgrid.apiKey.substring(0, 10) + '...' : 'NOT SET'}`);
+        console.log(`   From: ${config.sendgrid.fromEmail}`);
+        console.log(`   To: ${to}`);
 
-    console.log(`📧 [SENDGRID] Email sent to ${to}`);
-    return true;
+        const sgMail = await import('@sendgrid/mail');
+        sgMail.default.setApiKey(config.sendgrid.apiKey);
+
+        const response = await sgMail.default.send({
+            to,
+            from: config.sendgrid.fromEmail,
+            subject: finalSubject,
+            text: finalBody,
+            html: `<p>${finalBody.replace(/\n/g, '<br>')}</p>`,
+        });
+
+        console.log(`📧 [SENDGRID] Response status: ${response[0].statusCode}`);
+        console.log(`📧 [SENDGRID] Email sent successfully to ${to}`);
+        return true;
+    } catch (error: any) {
+        console.error(`📧 [SENDGRID ERROR] Failed to send email to ${to}`);
+        console.error(`   Error message: ${error.message}`);
+        if (error.response) {
+            console.error(`   Response body: ${JSON.stringify(error.response.body)}`);
+        }
+        throw error;
+    }
 }
 
 // Mock Twilio SMS sending
@@ -124,19 +146,28 @@ async function sendSms(data: SmsJobData): Promise<boolean> {
         return true;
     }
 
-    // Real Twilio implementation would go here
-    // const twilio = require('twilio');
-    // const client = twilio(config.twilio.accountSid, config.twilio.authToken);
-    // await client.messages.create({ body: finalMessage, from: config.twilio.phoneNumber, to });
-
-    console.log(`📱 [TWILIO] SMS sent to ${to}`);
-    return true;
+    // Real Twilio implementation
+    try {
+        const twilio = await import('twilio');
+        const client = twilio.default(config.twilio.accountSid, config.twilio.authToken);
+        await client.messages.create({
+            body: finalMessage,
+            from: config.twilio.phoneNumber,
+            to,
+        });
+        console.log(`📱 [TWILIO] SMS sent successfully to ${to}`);
+        return true;
+    } catch (error) {
+        console.error(`📱 [TWILIO ERROR] Failed to send SMS to ${to}:`, error);
+        throw error;
+    }
 }
 
 // Email worker
 export const emailWorker = new Worker(
     'email',
     async (job: Job<EmailJobData>) => {
+        console.log(`📧 [WORKER] Processing email job ${job.id} for ${job.data.to}`);
         const { notificationId, to } = job.data;
 
         // Create log entry
@@ -150,6 +181,7 @@ export const emailWorker = new Worker(
         });
 
         try {
+            console.log(`📧 [WORKER] Calling sendEmail for ${to}...`);
             const success = await sendEmail(job.data);
 
             if (success) {
