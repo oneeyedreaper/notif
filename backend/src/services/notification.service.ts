@@ -39,11 +39,14 @@ export class NotificationService {
         // Queue email if user has opted in and email is verified
         if (user.preferences?.emailEnabled && user.emailVerified) {
             console.log(`📧 [QUEUE] Queuing email for user ${user.email} - Notification: "${data.title}"`);
+            const emailBody = data.actionUrl
+                ? `${data.message}\n\nView details: ${data.actionUrl}`
+                : data.message;
             await addEmailJob({
                 notificationId: notification.id,
                 to: user.email,
                 subject: `[${data.type}] ${data.title}`,
-                body: data.message,
+                body: emailBody,
             });
             console.log(`📧 [QUEUE] Email queued successfully for ${user.email}`);
         } else {
