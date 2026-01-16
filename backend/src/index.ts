@@ -32,14 +32,19 @@ app.use(helmet({
 const allowedOrigins = [
     config.frontendUrl,
     'http://localhost:3000',
+    'http://localhost:3001',
     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+    process.env.RENDER_EXTERNAL_URL || null,
 ].filter(Boolean) as string[];
 
 app.use(cors({
     origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps or Postman)
+        // Allow requests with no origin (like mobile apps, Postman, or same-origin)
         if (!origin) return callback(null, true);
-        if (allowedOrigins.some(allowed => origin.startsWith(allowed) || origin.includes('vercel.app'))) {
+        // Allow vercel.app and onrender.com domains
+        if (allowedOrigins.some(allowed => origin.startsWith(allowed)) ||
+            origin.includes('vercel.app') ||
+            origin.includes('onrender.com')) {
             return callback(null, true);
         }
         callback(new Error('Not allowed by CORS'));
