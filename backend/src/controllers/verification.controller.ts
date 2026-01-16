@@ -1,4 +1,4 @@
-import { Response, NextFunction } from 'express';
+import { Response, NextFunction, Request } from 'express';
 import { AuthRequest } from '../middleware/auth.js';
 import { verificationService } from '../services/verification.service.js';
 import { createError } from '../middleware/error.js';
@@ -6,6 +6,10 @@ import { z } from 'zod';
 
 const verifyPhoneSchema = z.object({
     code: z.string().length(6, 'Verification code must be 6 digits'),
+});
+
+const resendEmailSchema = z.object({
+    email: z.string().email('Invalid email address'),
 });
 
 export class VerificationController {
@@ -36,6 +40,23 @@ export class VerificationController {
                 req.user.email,
                 req.user.name || 'User'
             );
+
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    // Public resend (no auth required - for login page)
+    async resendVerificationEmailPublic(req: Request, res: Response, next: NextFunction) {
+        try {
+            const parsed = resendEmailSchema.safeParse(req.body);
+
+            if (!parsed.success) {
+                throw createError(parsed.error.errors[0].message, 400);
+            }
+
+            const result = await verificationService.resendEmailVerification(parsed.data.email);
 
             res.json(result);
         } catch (error) {

@@ -53,12 +53,18 @@ export class VerificationService {
         const user = await prisma.user.findFirst({
             where: {
                 emailVerifyToken: token,
-                emailVerifyExpires: { gt: new Date() },
             },
         });
 
         if (!user) {
-            throw createError('Invalid or expired verification token', 400);
+            throw createError('Invalid verification token', 400);
+        }
+
+        // Check if token expired
+        if (user.emailVerifyExpires && new Date() > user.emailVerifyExpires) {
+            // Delete the unverified account
+            await prisma.user.delete({ where: { id: user.id } });
+            throw createError('Verification link expired. Please register again.', 400);
         }
 
         // Update user as verified
@@ -71,7 +77,64 @@ export class VerificationService {
             },
         });
 
-        return { message: 'Email verified successfully' };
+        return { message: 'Email verified successfully! You can now log in.' };
+    }
+
+    // Resend email verification (public - by email)
+    async resendEmailVerification(email: string) {
+        const user = await prisma.user.findUnique({
+            where: { email },
+        });
+
+        // Don't reveal if email exists (security)
+        if (!user || user.emailVerified) {
+            return { message: 'If this email is registered and unverified, a verification link has been sent.' };
+        }
+
+        // Generate new token and reset expiry (replaces old token)
+        const token = this.generateEmailToken();
+        const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                emailVerifyToken: token,
+                emailVerifyExpires: expires,
+            },
+        });
+
+        // Send verification email
+        const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email/${token}`;
+
+        await emailService.sendEmail({
+            to: email,
+            subject: 'Verify your email address',
+            body: `
+                <h1>Email Verification</h1>
+                <p>Please verify your email address by clicking the link below:</p>
+                <p><a href="${verifyUrl}" style="background-color: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Verify Email</a></p>
+                <p>Or copy this link: ${verifyUrl}</p>
+                <p>This link expires in 24 hours.</p>
+            `,
+        });
+
+        return { message: 'If this email is registered and unverified, a verification link has been sent.' };
+    }
+
+    // Cleanup expired unverified accounts (called by scheduled job)
+    async cleanupExpiredAccounts() {
+        const result = await prisma.user.deleteMany({
+            where: {
+                emailVerified: false,
+                emailVerifyExpires: { lt: new Date() },
+            },
+        });
+
+        if (result.count > 0) {
+            console.log(`🧹 [CLEANUP] Deleted ${result.count} expired unverified accounts`);
+        }
+
+        return { deleted: result.count };
     }
 
     // Send phone verification OTP

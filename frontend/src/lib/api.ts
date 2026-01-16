@@ -48,7 +48,7 @@ class ApiClient {
 
     // Auth
     async register(data: { email: string; password: string; name: string; phone?: string }) {
-        return this.request<{ user: User; token: string }>('/api/auth/register', {
+        return this.request<{ user: User; message: string }>('/api/auth/register', {
             method: 'POST',
             body: data,
         })
@@ -91,9 +91,10 @@ class ApiClient {
         return this.request<{ message: string }>(`/api/verification/email/${token}`)
     }
 
-    async resendVerificationEmail() {
+    async resendVerificationEmail(email: string) {
         return this.request<{ message: string }>('/api/verification/resend-email', {
             method: 'POST',
+            body: { email },
         })
     }
 

@@ -16,6 +16,7 @@ import verificationRoutes from './routes/verification.routes.js';
 
 // Import queue workers to start them
 import './queues/index.js';
+import { verificationService } from './services/verification.service.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -99,6 +100,18 @@ httpServer.listen(config.port, () => {
    📱 SMS Mode:   ${config.twilio.mockMode ? 'MOCK (not sending real SMS)' : 'LIVE (Twilio)'}
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   `);
+
+    // Start cleanup job for expired unverified accounts (every hour)
+    setInterval(async () => {
+        try {
+            await verificationService.cleanupExpiredAccounts();
+        } catch (error) {
+            console.error('🧹 [CLEANUP ERROR]', error);
+        }
+    }, 60 * 60 * 1000); // 1 hour
+
+    // Run cleanup once on startup
+    verificationService.cleanupExpiredAccounts().catch(console.error);
 });
 
 // Graceful shutdown

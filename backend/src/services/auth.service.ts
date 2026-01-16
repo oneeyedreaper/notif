@@ -70,10 +70,11 @@ export class AuthService {
         // Send verification email
         await verificationService.sendEmailVerification(user.id, user.email, user.name);
 
-        // Generate token
-        const token = this.generateToken(user.id, user.email);
-
-        return { user, token, message: 'Please check your email to verify your account.' };
+        // Don't return token - user must verify email first
+        return {
+            user,
+            message: 'Registration successful! Please check your email to verify your account.'
+        };
     }
 
     async login(data: LoginInput) {
@@ -93,6 +94,14 @@ export class AuthService {
             throw createError('Invalid email or password', 401);
         }
 
+        // Check if email is verified
+        if (!user.emailVerified) {
+            const error = createError('Please verify your email before logging in', 403);
+            (error as any).code = 'EMAIL_NOT_VERIFIED';
+            (error as any).email = user.email;
+            throw error;
+        }
+
         // Generate token
         const token = this.generateToken(user.id, user.email);
 
@@ -102,6 +111,8 @@ export class AuthService {
                 email: user.email,
                 name: user.name,
                 phone: user.phone,
+                emailVerified: user.emailVerified,
+                phoneVerified: user.phoneVerified,
                 createdAt: user.createdAt,
             },
             token,

@@ -28,17 +28,25 @@ router.get('/email/:token', verificationController.verifyEmail.bind(verification
  * @swagger
  * /api/verification/resend-email:
  *   post:
- *     summary: Resend verification email
+ *     summary: Resend verification email (public - no auth required)
  *     tags: [Verification]
- *     security:
- *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
  *     responses:
  *       200:
- *         description: Verification email sent
- *       401:
- *         description: Not authenticated
+ *         description: Verification email sent (or generic message for security)
  */
-router.post('/resend-email', authMiddleware, verificationController.resendVerificationEmail.bind(verificationController));
+router.post('/resend-email', verificationController.resendVerificationEmailPublic.bind(verificationController));
 
 /**
  * @swagger
