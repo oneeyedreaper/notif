@@ -217,7 +217,11 @@ export const emailWorker = new Worker(
             throw error;
         }
     },
-    { connection }
+    {
+        connection,
+        // Reduce Redis polling to save Upstash requests
+        drainDelay: 30000, // Wait 30 seconds between polls when queue is empty
+    }
 );
 
 // SMS worker
@@ -262,7 +266,11 @@ export const smsWorker = new Worker(
             throw error;
         }
     },
-    { connection }
+    {
+        connection,
+        // Reduce Redis polling to save Upstash requests
+        drainDelay: 30000, // Wait 30 seconds between polls when queue is empty
+    }
 );
 
 // Worker event handlers
