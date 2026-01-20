@@ -205,19 +205,21 @@ Body: Hi {{name}}, your verification code is {{code}}.
 
 ## 🚢 Deployment
 
-### Backend (Railway)
+### Backend (Render)
 
-1. Create a Railway project
+1. Create a Web Service on Render
 2. Connect your GitHub repo
-3. Set root directory to `/backend`
-4. Add environment variables
-5. Deploy
+3. Set root directory to `backend`
+4. Set Build Command: `npm install && npm run build`
+5. Set Start Command: `npm run start`
+6. Add environment variables from `.env.exmaple`
+7. Deploy
 
 ### Frontend (Vercel)
 
 1. Import repo to Vercel
-2. Set root directory to `/frontend`
-3. Add `NEXT_PUBLIC_API_URL` pointing to Railway backend
+2. Set root directory to `frontend`
+3. Add `NEXT_PUBLIC_API_URL` pointing to Render backend URL
 4. Deploy
 
 ## 🧪 Mock Mode
